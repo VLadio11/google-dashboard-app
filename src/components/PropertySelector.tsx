@@ -30,6 +30,7 @@ export default function PropertySelector({ accessToken, onSelect, onSignOut }: P
   const [adsCustomers, setAdsCustomers] = useState<AdsCustomer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [adsError, setAdsError] = useState<string | null>(null);
 
   const [selectedProperty, setSelectedProperty] = useState('');
   const [selectedSite, setSelectedSite] = useState('');
@@ -86,12 +87,20 @@ export default function PropertySelector({ accessToken, onSelect, onSignOut }: P
         }
 
         // Google Ads customers
-        if (HAS_ADS_TOKEN && adsRes && adsRes.status === 'fulfilled') {
-          const customers = (adsRes.value as (AdsCustomer | null)[]).filter(
-            Boolean
-          ) as AdsCustomer[];
-          setAdsCustomers(customers);
-          if (customers.length > 0) setSelectedCustomer(customers[0].id);
+        if (HAS_ADS_TOKEN && adsRes) {
+          if (adsRes.status === 'fulfilled') {
+            const customers = (adsRes.value as (AdsCustomer | null)[]).filter(
+              Boolean
+            ) as AdsCustomer[];
+            setAdsCustomers(customers);
+            if (customers.length > 0) setSelectedCustomer(customers[0].id);
+          } else {
+            const msg =
+              adsRes.reason instanceof Error
+                ? adsRes.reason.message
+                : 'Failed to load Google Ads accounts';
+            setAdsError(msg);
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load properties');
@@ -193,6 +202,22 @@ export default function PropertySelector({ accessToken, onSelect, onSignOut }: P
                 <div className="empty-state small">
                   Set <code>VITE_GOOGLE_ADS_DEVELOPER_TOKEN</code> in your <code>.env</code> to
                   enable Google Ads data.
+                </div>
+              ) : adsError ? (
+                <div className="error-banner" style={{ fontSize: '12px', padding: '10px 12px' }}>
+                  <strong>Ads API error:</strong> {adsError}
+                  <div style={{ marginTop: 6, color: '#c5221f' }}>
+                    If you are using a <strong>test developer token</strong>, it can only access
+                    Google Ads <em>test accounts</em>. Apply for a production token at{' '}
+                    <a
+                      href="https://developers.google.com/google-ads/api/docs/get-started/dev-token"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: 'inherit' }}
+                    >
+                      developers.google.com
+                    </a>.
+                  </div>
                 </div>
               ) : adsCustomers.length === 0 ? (
                 <div className="empty-state small">
