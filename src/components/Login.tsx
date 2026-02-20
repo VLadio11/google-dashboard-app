@@ -1,9 +1,11 @@
 import { useGoogleLogin } from '@react-oauth/google';
 
+const HAS_ADS_TOKEN = !!import.meta.env.VITE_GOOGLE_ADS_DEVELOPER_TOKEN;
+
 const SCOPES = [
   'https://www.googleapis.com/auth/analytics.readonly',
   'https://www.googleapis.com/auth/webmasters.readonly',
-  'https://www.googleapis.com/auth/adwords',
+  ...(HAS_ADS_TOKEN ? ['https://www.googleapis.com/auth/adwords'] : []),
 ].join(' ');
 
 interface LoginProps {
