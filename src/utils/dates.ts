@@ -31,3 +31,21 @@ export function formatDuration(seconds: number): string {
 export function formatPct(ratio: number): string {
   return `${(ratio * 100).toFixed(1)}%`;
 }
+
+/** Returns the same-length period immediately before [startDate, endDate]. */
+export function getPrevPeriod(
+  startDate: string,
+  endDate: string
+): { prevStart: string; prevEnd: string } {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const days = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+  const prevEnd = new Date(start);
+  prevEnd.setDate(prevEnd.getDate() - 1);
+  const prevStart = new Date(prevEnd);
+  prevStart.setDate(prevStart.getDate() - days + 1);
+  return {
+    prevStart: formatDate(prevStart),
+    prevEnd: formatDate(prevEnd),
+  };
+}

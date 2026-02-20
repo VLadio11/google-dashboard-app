@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { QueryData } from '../types';
 import { formatPct } from '../utils/dates';
 
@@ -5,36 +6,84 @@ interface TopQueriesTableProps {
   queries: QueryData[];
 }
 
+const PAGE_SIZE = 25;
+
 function positionBadgeClass(pos: number): string {
   if (pos <= 3) return 'badge badge-green';
   if (pos <= 10) return 'badge badge-blue';
   return 'badge badge-gray';
 }
 
+function ClicksDelta({ value }: { value: number | null | undefined }) {
+  if (value === null || value === undefined) {
+    return <span className="delta-new">New</span>;
+  }
+  if (value === 0) return <span className="delta-neutral">—</span>;
+  const up = value > 0;
+  return (
+    <span className={up ? 'delta-positive' : 'delta-negative'}>
+      {up ? '▲' : '▼'} {Math.abs(value).toLocaleString()}
+    </span>
+  );
+}
+
+function PositionDelta({ value }: { value: number | null | undefined }) {
+  if (value === null || value === undefined) return null;
+  if (Math.abs(value) < 0.05) return null;
+  // Negative delta = position number went down = ranking improved = good
+  const improved = value < 0;
+  return (
+    <div className={`delta-position ${improved ? 'delta-positive' : 'delta-negative'}`}>
+      {improved ? '▲' : '▼'} {Math.abs(value).toFixed(1)} pos
+    </div>
+  );
+}
+
 export default function TopQueriesTable({ queries }: TopQueriesTableProps) {
+  const [page, setPage] = useState(0);
+
   if (queries.length === 0) {
     return <div className="empty-state">No query data available for this period.</div>;
   }
 
+  const totalPages = Math.ceil(queries.length / PAGE_SIZE);
+  const start = page * PAGE_SIZE;
+  const pageRows = queries.slice(start, start + PAGE_SIZE);
   const maxClicks = queries[0]?.clicks ?? 1;
+
+  const hasPrev = queries.some((q) => q.clicksDelta !== undefined);
 
   return (
     <div className="table-card">
-      <h3 className="table-title">Top Search Queries</h3>
+      <div className="table-header-row">
+        <h3 className="table-title" style={{ border: 'none', background: 'transparent', padding: 0 }}>
+          Search Queries
+        </h3>
+        <span className="table-count">
+          {start + 1}–{Math.min(start + PAGE_SIZE, queries.length)} of{' '}
+          {queries.length.toLocaleString()}
+        </span>
+      </div>
+
       <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
+              <th style={{ width: 32 }}>#</th>
               <th>Query</th>
               <th className="text-right">Clicks</th>
               <th className="text-right">Impressions</th>
               <th className="text-right">CTR</th>
               <th className="text-right">Avg. Position</th>
+              {hasPrev && <th className="text-right">vs. Prev. Period</th>}
             </tr>
           </thead>
           <tbody>
-            {queries.map((q, i) => (
-              <tr key={i}>
+            {pageRows.map((q, i) => (
+              <tr key={start + i}>
+                <td className="mono" style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
+                  {start + i + 1}
+                </td>
                 <td className="query-cell">
                   <span className="query-text">{q.query}</span>
                   <div className="bar-track">
@@ -52,11 +101,39 @@ export default function TopQueriesTable({ queries }: TopQueriesTableProps) {
                     {q.position.toFixed(1)}
                   </span>
                 </td>
+                {hasPrev && (
+                  <td className="text-right">
+                    <ClicksDelta value={q.clicksDelta} />
+                    <PositionDelta value={q.positionDelta} />
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button
+            className="pagination-btn"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+          >
+            ← Prev
+          </button>
+          <span className="pagination-info">
+            Page {page + 1} of {totalPages}
+          </span>
+          <button
+            className="pagination-btn"
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page === totalPages - 1}
+          >
+            Next →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

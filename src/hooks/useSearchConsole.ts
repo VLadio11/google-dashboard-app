@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchSCOverview, fetchTopQueries } from '../services/searchConsoleApi';
+import { getPrevPeriod } from '../utils/dates';
 import type { SCOverview, QueryData } from '../types';
 
 interface UseSearchConsoleResult {
@@ -28,13 +29,16 @@ export function useSearchConsole(
       setLoading(true);
       setError(null);
       try {
-        const [overviewRes, queriesRes] = await Promise.all([
+        const { prevStart, prevEnd } = getPrevPeriod(startDate, endDate);
+
+        const [overviewRes, queriesRes, prevQueriesRes] = await Promise.all([
           fetchSCOverview(accessToken, siteUrl!, startDate, endDate),
           fetchTopQueries(accessToken, siteUrl!, startDate, endDate),
+          fetchTopQueries(accessToken, siteUrl!, prevStart, prevEnd),
         ]);
         if (cancelled) return;
 
-        // Overview — SC returns aggregate in rows[0] when no dimensions
+        // Overview
         const overviewRow = overviewRes.rows?.[0];
         setOverview(
           overviewRow
@@ -47,15 +51,31 @@ export function useSearchConsole(
             : { clicks: 0, impressions: 0, ctr: 0, position: 0 }
         );
 
-        // Top queries
+        // Build a lookup map for previous period: query → { clicks, position }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const queries: QueryData[] = (queriesRes.rows ?? []).map((r: any) => ({
-          query: r.keys[0],
-          clicks: r.clicks,
-          impressions: r.impressions,
-          ctr: r.ctr,
-          position: r.position,
-        }));
+        const prevMap = new Map<string, { clicks: number; position: number }>();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const r of prevQueriesRes.rows ?? [] as any[]) {
+          prevMap.set(r.keys[0] as string, {
+            clicks: r.clicks as number,
+            position: r.position as number,
+          });
+        }
+
+        // Current queries with deltas
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const queries: QueryData[] = (queriesRes.rows ?? []).map((r: any) => {
+          const prev = prevMap.get(r.keys[0] as string) ?? null;
+          return {
+            query: r.keys[0],
+            clicks: r.clicks,
+            impressions: r.impressions,
+            ctr: r.ctr,
+            position: r.position,
+            clicksDelta: prev !== null ? r.clicks - prev.clicks : null,
+            positionDelta: prev !== null ? r.position - prev.position : null,
+          };
+        });
         setTopQueries(queries);
       } catch (err) {
         if (!cancelled) {

@@ -27,6 +27,8 @@ export interface QueryData {
   impressions: number;
   ctr: number;
   position: number;
+  clicksDelta?: number | null;    // null = no previous data ("New" keyword)
+  positionDelta?: number | null;  // negative = improved (lower position is better)
 }
 
 export interface TimeSeriesPoint {

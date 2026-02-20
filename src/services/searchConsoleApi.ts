@@ -56,14 +56,15 @@ export async function fetchTopQueries(
   token: string,
   siteUrl: string,
   startDate: string,
-  endDate: string
+  endDate: string,
+  rowLimit = 1000
 ) {
   const encoded = encodeURIComponent(siteUrl);
   return post(`${BASE}/sites/${encoded}/searchAnalytics/query`, token, {
     startDate,
     endDate,
     dimensions: ['query'],
-    rowLimit: 10,
+    rowLimit,
     orderBy: [{ fieldName: 'clicks', sortOrder: 'DESCENDING' }],
   });
 }
