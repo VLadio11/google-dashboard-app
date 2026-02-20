@@ -133,6 +133,11 @@ body {
   color: var(--green);
 }
 
+.feature-orange {
+  background: var(--orange-light);
+  color: var(--orange);
+}
+
 .btn-google {
   display: inline-flex;
   align-items: center;
@@ -361,6 +366,11 @@ body {
   color: var(--green);
 }
 
+.section-label--orange {
+  background: var(--orange-light);
+  color: var(--orange);
+}
+
 .section-title {
   font-size: 18px;
   font-weight: 600;
@@ -554,6 +564,7 @@ body {
 
 .bar-blue { background: var(--blue); opacity: 0.5; }
 .bar-green { background: var(--green); opacity: 0.5; }
+.bar-orange { background: var(--orange); opacity: 0.5; }
 
 /* ── Badges ── */
 .badge {

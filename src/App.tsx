@@ -11,6 +11,8 @@ export default function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [gaPropertyId, setGaPropertyId] = useState<string | null>(null);
   const [scSiteUrl, setScSiteUrl] = useState<string | null>(null);
+  const [adsCustomerId, setAdsCustomerId] = useState<string | null>(null);
+  const [adsCurrencyCode, setAdsCurrencyCode] = useState('USD');
   const [datePreset, setDatePreset] = useState<DatePreset>('28');
 
   const view: View = !accessToken ? 'login' : !gaPropertyId ? 'setup' : 'dashboard';
@@ -24,16 +26,27 @@ export default function App() {
     setAccessToken(null);
     setGaPropertyId(null);
     setScSiteUrl(null);
+    setAdsCustomerId(null);
+    setAdsCurrencyCode('USD');
   }
 
-  function handlePropertySelect(propertyId: string, siteUrl: string | null) {
+  function handlePropertySelect(
+    propertyId: string,
+    siteUrl: string | null,
+    adsId: string | null,
+    adsCurrency: string
+  ) {
     setGaPropertyId(propertyId);
     setScSiteUrl(siteUrl);
+    setAdsCustomerId(adsId);
+    setAdsCurrencyCode(adsCurrency);
   }
 
   function handleReset() {
     setGaPropertyId(null);
     setScSiteUrl(null);
+    setAdsCustomerId(null);
+    setAdsCurrencyCode('USD');
   }
 
   return (
@@ -51,6 +64,8 @@ export default function App() {
           accessToken={accessToken!}
           gaPropertyId={gaPropertyId!}
           scSiteUrl={scSiteUrl}
+          adsCustomerId={adsCustomerId}
+          adsCurrencyCode={adsCurrencyCode}
           startDate={startDate}
           endDate={endDate}
           datePreset={datePreset}

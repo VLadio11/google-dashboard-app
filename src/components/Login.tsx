@@ -3,6 +3,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 const SCOPES = [
   'https://www.googleapis.com/auth/analytics.readonly',
   'https://www.googleapis.com/auth/webmasters.readonly',
+  'https://www.googleapis.com/auth/adwords',
 ].join(' ');
 
 interface LoginProps {
@@ -76,6 +77,13 @@ export default function Login({ onSignIn }: LoginProps) {
             <div>
               <strong>Search Console</strong>
               <span> — Clicks, impressions, CTR &amp; top queries</span>
+            </div>
+          </div>
+          <div className="feature-item">
+            <span className="feature-icon feature-orange">ADS</span>
+            <div>
+              <strong>Google Ads</strong>
+              <span> — Clicks, impressions, budget spent &amp; top keywords</span>
             </div>
           </div>
         </div>

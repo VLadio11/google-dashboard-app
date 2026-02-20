@@ -52,3 +52,25 @@ export interface SCSite {
 }
 
 export type DatePreset = '7' | '28' | '90';
+
+export interface AdsOverview {
+  clicks: number;
+  impressions: number;
+  costMicros: number;
+  ctr: number;
+  currencyCode: string;
+}
+
+export interface AdsKeyword {
+  text: string;
+  clicks: number;
+  impressions: number;
+  costMicros: number;
+  ctr: number;
+}
+
+export interface AdsCustomer {
+  id: string;
+  descriptiveName: string;
+  currencyCode: string;
+}

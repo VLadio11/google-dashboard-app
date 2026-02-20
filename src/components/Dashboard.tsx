@@ -1,8 +1,10 @@
 import { useAnalytics } from '../hooks/useAnalytics';
 import { useSearchConsole } from '../hooks/useSearchConsole';
+import { useAds } from '../hooks/useAds';
 import MetricCard from './MetricCard';
 import TopPagesTable from './TopPagesTable';
 import TopQueriesTable from './TopQueriesTable';
+import AdsKeywordsTable from './AdsKeywordsTable';
 import TrendChart from './TrendChart';
 import LoadingSpinner from './LoadingSpinner';
 import type { DatePreset } from '../types';
@@ -12,6 +14,8 @@ interface DashboardProps {
   accessToken: string;
   gaPropertyId: string;
   scSiteUrl: string | null;
+  adsCustomerId: string | null;
+  adsCurrencyCode: string;
   startDate: string;
   endDate: string;
   datePreset: DatePreset;
@@ -48,10 +52,20 @@ function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => vo
   );
 }
 
+function formatCost(micros: number, currencyCode: string): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currencyCode,
+    maximumFractionDigits: 2,
+  }).format(micros / 1_000_000);
+}
+
 export default function Dashboard({
   accessToken,
   gaPropertyId,
   scSiteUrl,
+  adsCustomerId,
+  adsCurrencyCode,
   startDate,
   endDate,
   datePreset,
@@ -61,6 +75,7 @@ export default function Dashboard({
 }: DashboardProps) {
   const ga = useAnalytics(accessToken, gaPropertyId, startDate, endDate);
   const sc = useSearchConsole(accessToken, scSiteUrl, startDate, endDate);
+  const ads = useAds(accessToken, adsCustomerId, adsCurrencyCode, startDate, endDate);
 
   return (
     <div className="dashboard">
@@ -205,6 +220,63 @@ export default function Dashboard({
         ) : (
           <div className="no-sc-banner">
             No Search Console site selected.{' '}
+            <button className="btn-link" onClick={onReset}>
+              Add one
+            </button>
+          </div>
+        )}
+
+        {/* ── Google Ads Section ── */}
+        {adsCustomerId ? (
+          <section className="section">
+            <div className="section-heading">
+              <div className="section-label section-label--orange">ADS</div>
+              <div>
+                <h2 className="section-title">Google Ads</h2>
+                <p className="section-meta">Customer ID: {adsCustomerId}</p>
+              </div>
+            </div>
+
+            {ads.loading ? (
+              <LoadingSpinner message="Fetching Google Ads data..." />
+            ) : ads.error ? (
+              <ErrorBanner message={ads.error} onRetry={onSignOut} />
+            ) : (
+              <>
+                <div className="metrics-grid">
+                  <MetricCard
+                    label="Paid Clicks"
+                    value={(ads.overview?.clicks ?? 0).toLocaleString()}
+                    color="blue"
+                    icon="🖱️"
+                  />
+                  <MetricCard
+                    label="Impressions"
+                    value={(ads.overview?.impressions ?? 0).toLocaleString()}
+                    color="green"
+                    icon="👁️"
+                  />
+                  <MetricCard
+                    label="Click-through Rate"
+                    value={formatPct(ads.overview?.ctr ?? 0)}
+                    color="purple"
+                    icon="📊"
+                  />
+                  <MetricCard
+                    label="Budget Spent"
+                    value={formatCost(ads.overview?.costMicros ?? 0, adsCurrencyCode)}
+                    color="orange"
+                    icon="💰"
+                    subtext={`in ${adsCurrencyCode}`}
+                  />
+                </div>
+                <AdsKeywordsTable keywords={ads.keywords} currencyCode={adsCurrencyCode} />
+              </>
+            )}
+          </section>
+        ) : (
+          <div className="no-sc-banner">
+            No Google Ads account selected.{' '}
             <button className="btn-link" onClick={onReset}>
               Add one
             </button>
