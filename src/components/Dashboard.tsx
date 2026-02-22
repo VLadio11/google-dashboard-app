@@ -8,6 +8,7 @@ import TopQueriesTable from './TopQueriesTable';
 import AdsKeywordsTable from './AdsKeywordsTable';
 import TrendChart from './TrendChart';
 import LoadingSpinner from './LoadingSpinner';
+import InfoTooltip from './InfoTooltip';
 import type { DatePreset } from '../types';
 import { formatPct } from '../utils/dates';
 
@@ -32,6 +33,40 @@ const DATE_LABELS: Record<DatePreset, string> = {
 };
 
 type Tab = 'home' | 'analytics' | 'search-console' | 'ads';
+
+// ── Tooltip definitions ──────────────────────────────────────────────────────
+
+const TOOLTIPS = {
+  sc: {
+    clicks:
+      'The number of times users clicked your site\'s link in Google Search results during this period.',
+    impressions:
+      'How many times your site appeared in Google Search results, regardless of whether it was clicked.',
+    ctr:
+      'Click-through rate: the percentage of impressions that resulted in a click. Calculated as Clicks ÷ Impressions.',
+    position:
+      'The average ranking position of your pages in Google Search. Position 1 is the top result. Lower numbers indicate better rankings.',
+  },
+  ga: {
+    sessions:
+      'A group of interactions that take place on your site within a given time frame. A new session starts after 30 minutes of inactivity.',
+    activeUsers:
+      'The number of distinct users who were active on your site during the selected period.',
+    newUsers: 'Users who visited your site for the very first time in the selected period.',
+    keyEvents:
+      'Actions marked as valuable on your site, such as purchases or sign-ups. Formerly called conversions.',
+  },
+  ads: {
+    clicks: 'The number of times users clicked on one of your Google Ads during this period.',
+    impressions:
+      'The number of times your ads were shown to users in Google\'s ad network during this period.',
+    ctr: 'Click-through rate: the percentage of ad impressions that resulted in a click.',
+    spend:
+      'The total amount charged to your Google Ads account for the selected period.',
+  },
+};
+
+// ── Helper components ────────────────────────────────────────────────────────
 
 function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => void }) {
   const isSessionExpired = message === 'SESSION_EXPIRED';
@@ -63,6 +98,8 @@ function formatCost(micros: number, currencyCode: string): string {
   }).format(micros / 1_000_000);
 }
 
+// ── Main component ───────────────────────────────────────────────────────────
+
 export default function Dashboard({
   accessToken,
   gaPropertyId,
@@ -77,6 +114,19 @@ export default function Dashboard({
   onReset,
 }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>('home');
+
+  // Search Console sort state
+  const [scSortKey, setScSortKey] = useState<'clicks' | 'position' | null>(null);
+  const [scSortDir, setScSortDir] = useState<'asc' | 'desc'>('asc');
+
+  function handleScSort(key: 'clicks' | 'position') {
+    if (scSortKey === key) {
+      setScSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setScSortKey(key);
+      setScSortDir('asc');
+    }
+  }
 
   const ga = useAnalytics(accessToken, gaPropertyId, startDate, endDate);
   const sc = useSearchConsole(accessToken, scSiteUrl, startDate, endDate);
@@ -203,25 +253,33 @@ export default function Dashboard({
                         <div className="overview-stat__value">
                           {(ga.metrics?.sessions ?? 0).toLocaleString()}
                         </div>
-                        <div className="overview-stat__label">Sessions</div>
+                        <div className="overview-stat__label">
+                          Sessions <InfoTooltip text={TOOLTIPS.ga.sessions} />
+                        </div>
                       </div>
                       <div className="overview-stat">
                         <div className="overview-stat__value">
                           {(ga.metrics?.activeUsers ?? 0).toLocaleString()}
                         </div>
-                        <div className="overview-stat__label">Active Users</div>
+                        <div className="overview-stat__label">
+                          Active Users <InfoTooltip text={TOOLTIPS.ga.activeUsers} />
+                        </div>
                       </div>
                       <div className="overview-stat">
                         <div className="overview-stat__value">
                           {(ga.metrics?.newUsers ?? 0).toLocaleString()}
                         </div>
-                        <div className="overview-stat__label">New Users</div>
+                        <div className="overview-stat__label">
+                          New Users <InfoTooltip text={TOOLTIPS.ga.newUsers} />
+                        </div>
                       </div>
                       <div className="overview-stat">
                         <div className="overview-stat__value">
                           {(ga.metrics?.eventCount ?? 0).toLocaleString()}
                         </div>
-                        <div className="overview-stat__label">Key Events</div>
+                        <div className="overview-stat__label">
+                          Key Events <InfoTooltip text={TOOLTIPS.ga.keyEvents} />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -248,25 +306,33 @@ export default function Dashboard({
                         <div className="overview-stat__value">
                           {(sc.overview?.clicks ?? 0).toLocaleString()}
                         </div>
-                        <div className="overview-stat__label">Clicks</div>
+                        <div className="overview-stat__label">
+                          Clicks <InfoTooltip text={TOOLTIPS.sc.clicks} />
+                        </div>
                       </div>
                       <div className="overview-stat">
                         <div className="overview-stat__value">
                           {(sc.overview?.impressions ?? 0).toLocaleString()}
                         </div>
-                        <div className="overview-stat__label">Impressions</div>
+                        <div className="overview-stat__label">
+                          Impressions <InfoTooltip text={TOOLTIPS.sc.impressions} />
+                        </div>
                       </div>
                       <div className="overview-stat">
                         <div className="overview-stat__value">
                           {formatPct(sc.overview?.ctr ?? 0)}
                         </div>
-                        <div className="overview-stat__label">CTR</div>
+                        <div className="overview-stat__label">
+                          CTR <InfoTooltip text={TOOLTIPS.sc.ctr} />
+                        </div>
                       </div>
                       <div className="overview-stat">
                         <div className="overview-stat__value">
                           {(sc.overview?.position ?? 0).toFixed(1)}
                         </div>
-                        <div className="overview-stat__label">Avg. Position</div>
+                        <div className="overview-stat__label">
+                          Avg. Position <InfoTooltip text={TOOLTIPS.sc.position} />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -293,25 +359,33 @@ export default function Dashboard({
                         <div className="overview-stat__value">
                           {(ads.overview?.clicks ?? 0).toLocaleString()}
                         </div>
-                        <div className="overview-stat__label">Paid Clicks</div>
+                        <div className="overview-stat__label">
+                          Paid Clicks <InfoTooltip text={TOOLTIPS.ads.clicks} />
+                        </div>
                       </div>
                       <div className="overview-stat">
                         <div className="overview-stat__value">
                           {(ads.overview?.impressions ?? 0).toLocaleString()}
                         </div>
-                        <div className="overview-stat__label">Impressions</div>
+                        <div className="overview-stat__label">
+                          Impressions <InfoTooltip text={TOOLTIPS.ads.impressions} />
+                        </div>
                       </div>
                       <div className="overview-stat">
                         <div className="overview-stat__value">
                           {formatPct(ads.overview?.ctr ?? 0)}
                         </div>
-                        <div className="overview-stat__label">CTR</div>
+                        <div className="overview-stat__label">
+                          CTR <InfoTooltip text={TOOLTIPS.ads.ctr} />
+                        </div>
                       </div>
                       <div className="overview-stat">
                         <div className="overview-stat__value">
                           {formatCost(ads.overview?.costMicros ?? 0, adsCurrencyCode)}
                         </div>
-                        <div className="overview-stat__label">Spend</div>
+                        <div className="overview-stat__label">
+                          Spend <InfoTooltip text={TOOLTIPS.ads.spend} />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -350,24 +424,28 @@ export default function Dashboard({
                       value={(ga.metrics?.sessions ?? 0).toLocaleString()}
                       color="blue"
                       icon="📈"
+                      tooltip={TOOLTIPS.ga.sessions}
                     />
                     <MetricCard
                       label="Active Users"
                       value={(ga.metrics?.activeUsers ?? 0).toLocaleString()}
                       color="green"
                       icon="👥"
+                      tooltip={TOOLTIPS.ga.activeUsers}
                     />
                     <MetricCard
                       label="New Users"
                       value={(ga.metrics?.newUsers ?? 0).toLocaleString()}
                       color="purple"
                       icon="✨"
+                      tooltip={TOOLTIPS.ga.newUsers}
                     />
                     <MetricCard
                       label="Key Events"
                       value={(ga.metrics?.eventCount ?? 0).toLocaleString()}
                       color="orange"
                       icon="🎯"
+                      tooltip={TOOLTIPS.ga.keyEvents}
                       subtext={
                         ga.metrics && ga.metrics.conversions > 0
                           ? `${ga.metrics.conversions.toLocaleString()} conversions`
@@ -400,34 +478,61 @@ export default function Dashboard({
                   <ErrorBanner message={sc.error} onRetry={onSignOut} />
                 ) : (
                   <>
+                    {scSortKey && (
+                      <div className="sort-hint">
+                        Sorted by{' '}
+                        <strong>{scSortKey === 'clicks' ? 'Clicks' : 'Avg. Position'}</strong>{' '}
+                        ({scSortDir === 'asc' ? 'lowest first' : 'highest first'}).{' '}
+                        <button
+                          className="btn-link"
+                          onClick={() => setScSortKey(null)}
+                        >
+                          Clear sort
+                        </button>
+                      </div>
+                    )}
                     <div className="metrics-grid">
                       <MetricCard
                         label="Total Clicks"
                         value={(sc.overview?.clicks ?? 0).toLocaleString()}
                         color="blue"
                         icon="👆"
+                        tooltip={TOOLTIPS.sc.clicks}
+                        onClick={() => handleScSort('clicks')}
+                        active={scSortKey === 'clicks'}
+                        sortDir={scSortKey === 'clicks' ? scSortDir : undefined}
                       />
                       <MetricCard
                         label="Impressions"
                         value={(sc.overview?.impressions ?? 0).toLocaleString()}
                         color="green"
                         icon="👁️"
+                        tooltip={TOOLTIPS.sc.impressions}
                       />
                       <MetricCard
                         label="Click-through Rate"
                         value={formatPct(sc.overview?.ctr ?? 0)}
                         color="purple"
                         icon="📊"
+                        tooltip={TOOLTIPS.sc.ctr}
                       />
                       <MetricCard
                         label="Avg. Position"
                         value={(sc.overview?.position ?? 0).toFixed(1)}
                         color="orange"
                         icon="📍"
+                        tooltip={TOOLTIPS.sc.position}
                         subtext="lower is better"
+                        onClick={() => handleScSort('position')}
+                        active={scSortKey === 'position'}
+                        sortDir={scSortKey === 'position' ? scSortDir : undefined}
                       />
                     </div>
-                    <TopQueriesTable queries={sc.topQueries} />
+                    <TopQueriesTable
+                      queries={sc.topQueries}
+                      sortKey={scSortKey}
+                      sortDir={scSortDir}
+                    />
                   </>
                 )}
               </section>
@@ -465,24 +570,28 @@ export default function Dashboard({
                         value={(ads.overview?.clicks ?? 0).toLocaleString()}
                         color="blue"
                         icon="🖱️"
+                        tooltip={TOOLTIPS.ads.clicks}
                       />
                       <MetricCard
                         label="Impressions"
                         value={(ads.overview?.impressions ?? 0).toLocaleString()}
                         color="green"
                         icon="👁️"
+                        tooltip={TOOLTIPS.ads.impressions}
                       />
                       <MetricCard
                         label="Click-through Rate"
                         value={formatPct(ads.overview?.ctr ?? 0)}
                         color="purple"
                         icon="📊"
+                        tooltip={TOOLTIPS.ads.ctr}
                       />
                       <MetricCard
                         label="Budget Spent"
                         value={formatCost(ads.overview?.costMicros ?? 0, adsCurrencyCode)}
                         color="orange"
                         icon="💰"
+                        tooltip={TOOLTIPS.ads.spend}
                         subtext={`in ${adsCurrencyCode}`}
                       />
                     </div>
