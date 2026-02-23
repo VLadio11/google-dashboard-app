@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { SCPageStats } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import InfoTooltip from './InfoTooltip';
@@ -23,12 +23,12 @@ function positionBadgeClass(pos: number): string {
   return 'badge badge-gray';
 }
 
-// Builds the SC deep-link for URL Inspection (pre-loads the specific page)
-function scInspectLink(siteUrl: string, pageUrl: string): string {
-  return `https://search.google.com/search-console/inspect?resource_id=${encodeURIComponent(siteUrl)}&id=${encodeURIComponent(pageUrl)}`;
+// SC links — SC is a SPA so only the root + resource_id entry works as a cold URL.
+// The /inspect?id=... path 404s when opened directly (needs the app already loaded).
+function scRootLink(siteUrl: string): string {
+  return `https://search.google.com/search-console/index?resource_id=${encodeURIComponent(siteUrl)}`;
 }
 
-// Builds the SC deep-link for the Removals tool
 function scRemovalsLink(siteUrl: string): string {
   return `https://search.google.com/search-console/removals?resource_id=${encodeURIComponent(siteUrl)}`;
 }
@@ -92,8 +92,19 @@ export default function PageDataTab({
   const [indexedSortDir, setIndexedSortDir] = useState<SortDir>('desc');
   const [notIndexedSortKey, setNotIndexedSortKey] = useState<NotIndexedSortKey>('pageViews');
   const [notIndexedSortDir, setNotIndexedSortDir] = useState<SortDir>('desc');
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
   useEffect(() => { setPage(0); }, [filter]);
+
+  // Copy the page URL to clipboard and open SC URL Inspection tool.
+  // SC's /inspect?id=... path 404s as a cold URL (SPA entry point limitation),
+  // so we open SC for the property and let the user paste the copied URL.
+  const handleRequestIndex = useCallback((pageUrl: string) => {
+    navigator.clipboard.writeText(pageUrl).catch(() => {});
+    window.open(scRootLink(siteUrl), '_blank', 'noopener,noreferrer');
+    setCopiedUrl(pageUrl);
+    setTimeout(() => setCopiedUrl(null), 2500);
+  }, [siteUrl]);
 
   function handleIndexedSort(key: string) {
     const k = key as IndexedSortKey;
@@ -309,7 +320,7 @@ export default function PageDataTab({
                           <span className="th-inner">
                             <span className="th-icon">🔍</span>
                             Request Index
-                            <InfoTooltip text="Opens Google Search Console's URL Inspection tool so you can request Google to index this page." />
+                            <InfoTooltip text="Copies the page URL to your clipboard and opens Search Console. Paste the URL into the URL Inspection tool, then click 'Request Indexing'." />
                           </span>
                         </th>
                       </>
@@ -360,15 +371,13 @@ export default function PageDataTab({
                           </td>
                           <td className="text-right mono">{formatTime(row.avgTimeOnPage)}</td>
                           <td className="text-right">
-                            <a
-                              href={scInspectLink(siteUrl, row.page)}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
                               className="btn-action btn-action--primary"
-                              title={`Request indexing for ${row.page}`}
+                              onClick={() => handleRequestIndex(row.page)}
+                              title="Copies this URL to your clipboard and opens Search Console — paste the URL into the URL Inspection tool and click Request Indexing"
                             >
-                              🔍 Request Index
-                            </a>
+                              {copiedUrl === row.page ? '✅ URL Copied!' : '🔍 Request Index'}
+                            </button>
                           </td>
                         </>
                       )}
