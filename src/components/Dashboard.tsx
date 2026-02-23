@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useAnalytics } from '../hooks/useAnalytics';
 import { useSearchConsole } from '../hooks/useSearchConsole';
 import { useAds } from '../hooks/useAds';
+import { usePageData } from '../hooks/usePageData';
 import MetricCard from './MetricCard';
 import TopPagesTable from './TopPagesTable';
 import TopQueriesTable from './TopQueriesTable';
+import PageDataTab from './PageDataTab';
 import AdsKeywordsTable from './AdsKeywordsTable';
 import TrendChart from './TrendChart';
 import LoadingSpinner from './LoadingSpinner';
@@ -115,6 +117,9 @@ export default function Dashboard({
 }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>('home');
 
+  // Search Console sub-tab
+  const [scTab, setScTab] = useState<'queries' | 'page-data'>('queries');
+
   // Search Console sort state
   const [scSortKey, setScSortKey] = useState<'clicks' | 'position' | null>(null);
   const [scSortDir, setScSortDir] = useState<'asc' | 'desc'>('asc');
@@ -131,6 +136,7 @@ export default function Dashboard({
   const ga = useAnalytics(accessToken, gaPropertyId, startDate, endDate);
   const sc = useSearchConsole(accessToken, scSiteUrl, startDate, endDate);
   const ads = useAds(accessToken, adsCustomerId, adsCurrencyCode, startDate, endDate);
+  const pageData = usePageData(accessToken, scSiteUrl, gaPropertyId, startDate, endDate);
 
   const navItems: { id: Tab; label: string; icon: React.ReactNode }[] = [
     {
@@ -472,68 +478,92 @@ export default function Dashboard({
                   </div>
                 </div>
 
-                {sc.loading ? (
-                  <LoadingSpinner message="Fetching Search Console data…" />
-                ) : sc.error ? (
-                  <ErrorBanner message={sc.error} onRetry={onSignOut} />
-                ) : (
-                  <>
-                    {scSortKey && (
-                      <div className="sort-hint">
-                        Sorted by{' '}
-                        <strong>{scSortKey === 'clicks' ? 'Clicks' : 'Avg. Position'}</strong>{' '}
-                        ({scSortDir === 'asc' ? 'lowest first' : 'highest first'}).{' '}
-                        <button
-                          className="btn-link"
-                          onClick={() => setScSortKey(null)}
-                        >
-                          Clear sort
-                        </button>
+                {/* SC sub-tabs */}
+                <div className="sc-subtabs">
+                  <button
+                    className={`sc-subtab ${scTab === 'queries' ? 'sc-subtab--active' : ''}`}
+                    onClick={() => setScTab('queries')}
+                  >
+                    Queries
+                  </button>
+                  <button
+                    className={`sc-subtab ${scTab === 'page-data' ? 'sc-subtab--active' : ''}`}
+                    onClick={() => setScTab('page-data')}
+                  >
+                    Page Data
+                  </button>
+                </div>
+
+                {scTab === 'queries' && (
+                  sc.loading ? (
+                    <LoadingSpinner message="Fetching Search Console data…" />
+                  ) : sc.error ? (
+                    <ErrorBanner message={sc.error} onRetry={onSignOut} />
+                  ) : (
+                    <>
+                      {scSortKey && (
+                        <div className="sort-hint">
+                          Sorted by{' '}
+                          <strong>{scSortKey === 'clicks' ? 'Clicks' : 'Avg. Position'}</strong>{' '}
+                          ({scSortDir === 'asc' ? 'lowest first' : 'highest first'}).{' '}
+                          <button className="btn-link" onClick={() => setScSortKey(null)}>
+                            Clear sort
+                          </button>
+                        </div>
+                      )}
+                      <div className="metrics-grid">
+                        <MetricCard
+                          label="Total Clicks"
+                          value={(sc.overview?.clicks ?? 0).toLocaleString()}
+                          color="blue"
+                          icon="👆"
+                          tooltip={TOOLTIPS.sc.clicks}
+                          onClick={() => handleScSort('clicks')}
+                          active={scSortKey === 'clicks'}
+                          sortDir={scSortKey === 'clicks' ? scSortDir : undefined}
+                        />
+                        <MetricCard
+                          label="Impressions"
+                          value={(sc.overview?.impressions ?? 0).toLocaleString()}
+                          color="green"
+                          icon="👁️"
+                          tooltip={TOOLTIPS.sc.impressions}
+                        />
+                        <MetricCard
+                          label="Click-through Rate"
+                          value={formatPct(sc.overview?.ctr ?? 0)}
+                          color="purple"
+                          icon="📊"
+                          tooltip={TOOLTIPS.sc.ctr}
+                        />
+                        <MetricCard
+                          label="Avg. Position"
+                          value={(sc.overview?.position ?? 0).toFixed(1)}
+                          color="orange"
+                          icon="📍"
+                          tooltip={TOOLTIPS.sc.position}
+                          subtext="lower is better"
+                          onClick={() => handleScSort('position')}
+                          active={scSortKey === 'position'}
+                          sortDir={scSortKey === 'position' ? scSortDir : undefined}
+                        />
                       </div>
-                    )}
-                    <div className="metrics-grid">
-                      <MetricCard
-                        label="Total Clicks"
-                        value={(sc.overview?.clicks ?? 0).toLocaleString()}
-                        color="blue"
-                        icon="👆"
-                        tooltip={TOOLTIPS.sc.clicks}
-                        onClick={() => handleScSort('clicks')}
-                        active={scSortKey === 'clicks'}
-                        sortDir={scSortKey === 'clicks' ? scSortDir : undefined}
+                      <TopQueriesTable
+                        queries={sc.topQueries}
+                        sortKey={scSortKey}
+                        sortDir={scSortDir}
                       />
-                      <MetricCard
-                        label="Impressions"
-                        value={(sc.overview?.impressions ?? 0).toLocaleString()}
-                        color="green"
-                        icon="👁️"
-                        tooltip={TOOLTIPS.sc.impressions}
-                      />
-                      <MetricCard
-                        label="Click-through Rate"
-                        value={formatPct(sc.overview?.ctr ?? 0)}
-                        color="purple"
-                        icon="📊"
-                        tooltip={TOOLTIPS.sc.ctr}
-                      />
-                      <MetricCard
-                        label="Avg. Position"
-                        value={(sc.overview?.position ?? 0).toFixed(1)}
-                        color="orange"
-                        icon="📍"
-                        tooltip={TOOLTIPS.sc.position}
-                        subtext="lower is better"
-                        onClick={() => handleScSort('position')}
-                        active={scSortKey === 'position'}
-                        sortDir={scSortKey === 'position' ? scSortDir : undefined}
-                      />
-                    </div>
-                    <TopQueriesTable
-                      queries={sc.topQueries}
-                      sortKey={scSortKey}
-                      sortDir={scSortDir}
-                    />
-                  </>
+                    </>
+                  )
+                )}
+
+                {scTab === 'page-data' && (
+                  <PageDataTab
+                    indexedPages={pageData.indexedPages}
+                    notIndexedPages={pageData.notIndexedPages}
+                    loading={pageData.loading}
+                    error={pageData.error}
+                  />
                 )}
               </section>
             ) : (

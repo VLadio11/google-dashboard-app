@@ -76,3 +76,12 @@ export interface AdsCustomer {
   descriptiveName: string;
   currencyCode: string;
 }
+
+export interface SCPageStats {
+  page: string;          // full URL from SC (indexed) or path from GA (not indexed)
+  clicks: number;        // from SC
+  impressions: number;   // from SC
+  position: number;      // from SC (0 for not-indexed)
+  pageViews?: number;    // from GA
+  avgTimeOnPage?: number; // seconds, from GA
+}
