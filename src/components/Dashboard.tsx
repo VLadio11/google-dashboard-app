@@ -562,7 +562,9 @@ export default function Dashboard({
                     indexedPages={pageData.indexedPages}
                     notIndexedPages={pageData.notIndexedPages}
                     loading={pageData.loading}
+                    inspecting={pageData.inspecting}
                     error={pageData.error}
+                    siteUrl={scSiteUrl!}
                   />
                 )}
               </section>

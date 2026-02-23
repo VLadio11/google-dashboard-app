@@ -614,6 +614,68 @@ body {
   border-top-color: #202124;
 }
 
+/* ── Inspection progress banner ── */
+.inspection-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--blue-light);
+  border: 1px solid rgba(26, 115, 232, 0.2);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+.inspection-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(26, 115, 232, 0.3);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ── Action buttons (table rows) ── */
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-action--danger {
+  background: var(--red-light);
+  color: var(--red);
+  border-color: rgba(234, 67, 53, 0.25);
+}
+
+.btn-action--danger:hover {
+  background: #f5c6c2;
+  border-color: rgba(234, 67, 53, 0.5);
+}
+
+.btn-action--primary {
+  background: var(--blue-light);
+  color: var(--blue);
+  border-color: rgba(26, 115, 232, 0.25);
+}
+
+.btn-action--primary:hover {
+  background: #c5d9f7;
+  border-color: rgba(26, 115, 232, 0.5);
+}
+
 /* ── SC sub-tabs ── */
 .sc-subtabs {
   display: flex;

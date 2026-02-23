@@ -23,7 +23,16 @@ function positionBadgeClass(pos: number): string {
   return 'badge badge-gray';
 }
 
-// Column header with icon, sort arrow, and click handler
+// Builds the SC deep-link for URL Inspection (pre-loads the specific page)
+function scInspectLink(siteUrl: string, pageUrl: string): string {
+  return `https://search.google.com/search-console/inspect?resource_id=${encodeURIComponent(siteUrl)}&id=${encodeURIComponent(pageUrl)}`;
+}
+
+// Builds the SC deep-link for the Removals tool
+function scRemovalsLink(siteUrl: string): string {
+  return `https://search.google.com/search-console/removals?resource_id=${encodeURIComponent(siteUrl)}`;
+}
+
 function SortTh({
   label,
   icon,
@@ -64,14 +73,18 @@ interface PageDataTabProps {
   indexedPages: SCPageStats[];
   notIndexedPages: SCPageStats[];
   loading: boolean;
+  inspecting: boolean;
   error: string | null;
+  siteUrl: string;
 }
 
 export default function PageDataTab({
   indexedPages,
   notIndexedPages,
   loading,
+  inspecting,
   error,
+  siteUrl,
 }: PageDataTabProps) {
   const [filter, setFilter] = useState<Filter>('indexed');
   const [page, setPage] = useState(0);
@@ -80,7 +93,6 @@ export default function PageDataTab({
   const [notIndexedSortKey, setNotIndexedSortKey] = useState<NotIndexedSortKey>('pageViews');
   const [notIndexedSortDir, setNotIndexedSortDir] = useState<SortDir>('desc');
 
-  // Reset page on filter change
   useEffect(() => { setPage(0); }, [filter]);
 
   function handleIndexedSort(key: string) {
@@ -126,7 +138,7 @@ export default function PageDataTab({
     });
   }, [notIndexedPages, notIndexedSortKey, notIndexedSortDir]);
 
-  if (loading) return <LoadingSpinner message="Fetching page index data…" />;
+  if (loading) return <LoadingSpinner message="Fetching page data…" />;
   if (error) return <div className="error-banner"><strong>Error:</strong> {error}</div>;
 
   const rows = filter === 'indexed' ? sortedIndexed : sortedNotIndexed;
@@ -136,6 +148,14 @@ export default function PageDataTab({
 
   return (
     <div>
+      {/* Inspection progress banner */}
+      {inspecting && (
+        <div className="inspection-banner">
+          <span className="inspection-spinner" aria-hidden="true" />
+          Verifying index status via Google URL Inspection API…
+        </div>
+      )}
+
       {/* Summary cards */}
       <div className="metrics-grid">
         <div
@@ -157,9 +177,9 @@ export default function PageDataTab({
             </div>
             <div className="metric-card__label-row">
               <span className="metric-card__label">Indexed Pages</span>
-              <InfoTooltip text="Pages that have appeared in Google Search results during the selected period. Click to view them." />
+              <InfoTooltip text="Pages confirmed as indexed by Google's URL Inspection API or with Search Console impressions." />
             </div>
-            <div className="metric-card__subtext">found in Google Search</div>
+            <div className="metric-card__subtext">verified in Google Search</div>
           </div>
         </div>
 
@@ -181,10 +201,10 @@ export default function PageDataTab({
               <div className="metric-card__value">{notIndexedPages.length.toLocaleString()}</div>
             </div>
             <div className="metric-card__label-row">
-              <span className="metric-card__label">Not in Search</span>
-              <InfoTooltip text="Pages with GA traffic but no Google Search impressions in this period. They may not be indexed or simply aren't ranking." />
+              <span className="metric-card__label">Not Indexed</span>
+              <InfoTooltip text="Pages confirmed not indexed by Google's URL Inspection API. These pages will not appear in Google Search." />
             </div>
-            <div className="metric-card__subtext">no search impressions</div>
+            <div className="metric-card__subtext">not found in Google Search</div>
           </div>
         </div>
       </div>
@@ -193,7 +213,7 @@ export default function PageDataTab({
       <div className="table-card">
         <div className="table-header-row">
           <h3 className="table-title" style={{ border: 'none', background: 'transparent', padding: 0 }}>
-            {filter === 'indexed' ? 'Indexed Pages' : 'Pages Not in Search'}
+            {filter === 'indexed' ? 'Indexed Pages' : 'Not Indexed Pages'}
           </h3>
           {rows.length > 0 && (
             <span className="table-count">
@@ -204,9 +224,11 @@ export default function PageDataTab({
 
         {rows.length === 0 ? (
           <div className="empty-state">
-            {filter === 'indexed'
-              ? 'No pages found in Google Search for this period.'
-              : 'All tracked pages appear in Google Search.'}
+            {inspecting
+              ? 'Verifying pages…'
+              : filter === 'indexed'
+              ? 'No indexed pages found.'
+              : 'All checked pages appear to be indexed.'}
           </div>
         ) : (
           <>
@@ -215,7 +237,11 @@ export default function PageDataTab({
                 <thead>
                   <tr>
                     <th style={{ width: 32 }}>#</th>
-                    <th>Page</th>
+                    <th>
+                      <span className="th-inner" style={{ justifyContent: 'flex-start' }}>
+                        🔗 Page URL
+                      </span>
+                    </th>
                     {filter === 'indexed' ? (
                       <>
                         <SortTh
@@ -225,7 +251,7 @@ export default function PageDataTab({
                           activeSortKey={indexedSortKey}
                           sortDir={indexedSortDir}
                           onSort={handleIndexedSort}
-                          tooltip="Number of times users clicked through to this page from Google Search."
+                          tooltip="Clicks from Google Search results for this page."
                         />
                         <SortTh
                           label="Impressions"
@@ -236,7 +262,12 @@ export default function PageDataTab({
                           onSort={handleIndexedSort}
                           tooltip="How many times this page appeared in Google Search results."
                         />
-                        <th className="text-right">Avg. Position</th>
+                        <th className="text-right">
+                          <span className="th-inner">
+                            <span className="th-icon">📍</span>
+                            Avg. Position
+                          </span>
+                        </th>
                         <SortTh
                           label="Time on Page"
                           icon="⏱️"
@@ -244,8 +275,15 @@ export default function PageDataTab({
                           activeSortKey={indexedSortKey}
                           sortDir={indexedSortDir}
                           onSort={handleIndexedSort}
-                          tooltip="Average session duration for visitors who landed on this page, from Google Analytics."
+                          tooltip="Average session duration for visitors who landed on this page (Google Analytics)."
                         />
+                        <th className="text-right">
+                          <span className="th-inner">
+                            <span className="th-icon">🗑️</span>
+                            Remove
+                            <InfoTooltip text="Opens Google Search Console's Removals tool to temporarily remove this URL from Google Search." />
+                          </span>
+                        </th>
                       </>
                     ) : (
                       <>
@@ -256,7 +294,7 @@ export default function PageDataTab({
                           activeSortKey={notIndexedSortKey}
                           sortDir={notIndexedSortDir}
                           onSort={handleNotIndexedSort}
-                          tooltip="Total number of times this page was viewed, from Google Analytics."
+                          tooltip="Total page views from Google Analytics."
                         />
                         <SortTh
                           label="Time on Page"
@@ -265,8 +303,15 @@ export default function PageDataTab({
                           activeSortKey={notIndexedSortKey}
                           sortDir={notIndexedSortDir}
                           onSort={handleNotIndexedSort}
-                          tooltip="Average session duration for visitors who visited this page, from Google Analytics."
+                          tooltip="Average session duration for visitors who visited this page (Google Analytics)."
                         />
+                        <th className="text-right">
+                          <span className="th-inner">
+                            <span className="th-icon">🔍</span>
+                            Request Index
+                            <InfoTooltip text="Opens Google Search Console's URL Inspection tool so you can request Google to index this page." />
+                          </span>
+                        </th>
                       </>
                     )}
                   </tr>
@@ -287,11 +332,26 @@ export default function PageDataTab({
                           <td className="text-right mono">{row.clicks.toLocaleString()}</td>
                           <td className="text-right mono">{row.impressions.toLocaleString()}</td>
                           <td className="text-right">
-                            <span className={positionBadgeClass(row.position)}>
-                              {row.position.toFixed(1)}
-                            </span>
+                            {row.position > 0 ? (
+                              <span className={positionBadgeClass(row.position)}>
+                                {row.position.toFixed(1)}
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text-tertiary)' }}>—</span>
+                            )}
                           </td>
                           <td className="text-right mono">{formatTime(row.avgTimeOnPage)}</td>
+                          <td className="text-right">
+                            <a
+                              href={scRemovalsLink(siteUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-action btn-action--danger"
+                              title={`Open SC Removals tool for ${row.page}`}
+                            >
+                              🗑️ Remove
+                            </a>
+                          </td>
                         </>
                       ) : (
                         <>
@@ -299,6 +359,17 @@ export default function PageDataTab({
                             {(row.pageViews ?? 0).toLocaleString()}
                           </td>
                           <td className="text-right mono">{formatTime(row.avgTimeOnPage)}</td>
+                          <td className="text-right">
+                            <a
+                              href={scInspectLink(siteUrl, row.page)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-action btn-action--primary"
+                              title={`Request indexing for ${row.page}`}
+                            >
+                              🔍 Request Index
+                            </a>
+                          </td>
                         </>
                       )}
                     </tr>
