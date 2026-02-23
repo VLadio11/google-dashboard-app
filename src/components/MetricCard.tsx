@@ -50,9 +50,9 @@ export default function MetricCard({
       <div className="metric-card__body">
         <div className="metric-card__value-row">
           <div className="metric-card__value">{value}</div>
-          {active && sortDir && (
+          {onClick && (
             <span className="metric-card__sort-arrow" aria-hidden="true">
-              {sortDir === 'asc' ? '↑' : '↓'}
+              {active && sortDir ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
             </span>
           )}
         </div>

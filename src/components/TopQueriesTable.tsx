@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { QueryData } from '../types';
-import { formatPct } from '../utils/dates';
 
 interface TopQueriesTableProps {
   queries: QueryData[];
@@ -100,7 +99,6 @@ export default function TopQueriesTable({ queries, sortKey, sortDir = 'asc' }: T
                 Clicks <SortIndicator col="clicks" />
               </th>
               <th className="text-right">Impressions</th>
-              <th className="text-right">CTR</th>
               <th className="text-right">
                 Avg. Position <SortIndicator col="position" />
               </th>
@@ -124,7 +122,6 @@ export default function TopQueriesTable({ queries, sortKey, sortDir = 'asc' }: T
                 </td>
                 <td className="text-right mono">{q.clicks.toLocaleString()}</td>
                 <td className="text-right mono">{q.impressions.toLocaleString()}</td>
-                <td className="text-right mono">{formatPct(q.ctr)}</td>
                 <td className="text-right">
                   <span className={positionBadgeClass(q.position)}>
                     {q.position.toFixed(1)}

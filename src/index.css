@@ -502,10 +502,15 @@ body {
 }
 
 .metric-card__sort-arrow {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.metric-card--active .metric-card__sort-arrow {
+  color: var(--text-secondary);
 }
 
 .metric-card__label-row {
