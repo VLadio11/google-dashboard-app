@@ -670,8 +670,36 @@ body {
   border: 1px solid var(--border);
 }
 
-/* ── Table sort arrow in column headers ── */
+/* ── Sortable column headers ── */
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable-th:hover {
+  background: var(--bg);
+}
+
+.th-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.th-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
 .th-sort-arrow {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  transition: color 0.15s;
+}
+
+.th-sort-arrow--active {
   color: var(--blue);
   font-weight: 700;
 }

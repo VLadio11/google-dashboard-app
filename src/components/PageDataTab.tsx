@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { SCPageStats } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import InfoTooltip from './InfoTooltip';
 
 type Filter = 'indexed' | 'not-indexed';
+type IndexedSortKey = 'clicks' | 'impressions' | 'avgTimeOnPage';
+type NotIndexedSortKey = 'pageViews' | 'avgTimeOnPage';
+type SortDir = 'asc' | 'desc';
 
 const PAGE_SIZE = 25;
 
@@ -18,6 +21,43 @@ function positionBadgeClass(pos: number): string {
   if (pos <= 3) return 'badge badge-green';
   if (pos <= 10) return 'badge badge-blue';
   return 'badge badge-gray';
+}
+
+// Column header with icon, sort arrow, and click handler
+function SortTh({
+  label,
+  icon,
+  sortKey,
+  activeSortKey,
+  sortDir,
+  onSort,
+  tooltip,
+}: {
+  label: string;
+  icon: string;
+  sortKey: string;
+  activeSortKey: string;
+  sortDir: SortDir;
+  onSort: (key: string) => void;
+  tooltip?: string;
+}) {
+  const isActive = activeSortKey === sortKey;
+  return (
+    <th
+      className="text-right sortable-th"
+      onClick={() => onSort(sortKey)}
+      aria-sort={isActive ? (sortDir === 'desc' ? 'descending' : 'ascending') : 'none'}
+    >
+      <span className="th-inner">
+        <span className="th-icon">{icon}</span>
+        {label}
+        {tooltip && <InfoTooltip text={tooltip} />}
+        <span className={`th-sort-arrow ${isActive ? 'th-sort-arrow--active' : ''}`}>
+          {isActive ? (sortDir === 'desc' ? '↓' : '↑') : '↕'}
+        </span>
+      </span>
+    </th>
+  );
 }
 
 interface PageDataTabProps {
@@ -35,16 +75,61 @@ export default function PageDataTab({
 }: PageDataTabProps) {
   const [filter, setFilter] = useState<Filter>('indexed');
   const [page, setPage] = useState(0);
+  const [indexedSortKey, setIndexedSortKey] = useState<IndexedSortKey>('clicks');
+  const [indexedSortDir, setIndexedSortDir] = useState<SortDir>('desc');
+  const [notIndexedSortKey, setNotIndexedSortKey] = useState<NotIndexedSortKey>('pageViews');
+  const [notIndexedSortDir, setNotIndexedSortDir] = useState<SortDir>('desc');
+
+  // Reset page on filter change
+  useEffect(() => { setPage(0); }, [filter]);
+
+  function handleIndexedSort(key: string) {
+    const k = key as IndexedSortKey;
+    if (indexedSortKey === k) {
+      setIndexedSortDir((d) => (d === 'desc' ? 'asc' : 'desc'));
+    } else {
+      setIndexedSortKey(k);
+      setIndexedSortDir('desc');
+    }
+    setPage(0);
+  }
+
+  function handleNotIndexedSort(key: string) {
+    const k = key as NotIndexedSortKey;
+    if (notIndexedSortKey === k) {
+      setNotIndexedSortDir((d) => (d === 'desc' ? 'asc' : 'desc'));
+    } else {
+      setNotIndexedSortKey(k);
+      setNotIndexedSortDir('desc');
+    }
+    setPage(0);
+  }
 
   function handleFilter(f: Filter) {
     setFilter(f);
     setPage(0);
   }
 
+  const sortedIndexed = useMemo(() => {
+    return [...indexedPages].sort((a, b) => {
+      const aVal = (a[indexedSortKey] ?? 0) as number;
+      const bVal = (b[indexedSortKey] ?? 0) as number;
+      return indexedSortDir === 'desc' ? bVal - aVal : aVal - bVal;
+    });
+  }, [indexedPages, indexedSortKey, indexedSortDir]);
+
+  const sortedNotIndexed = useMemo(() => {
+    return [...notIndexedPages].sort((a, b) => {
+      const aVal = (a[notIndexedSortKey] ?? 0) as number;
+      const bVal = (b[notIndexedSortKey] ?? 0) as number;
+      return notIndexedSortDir === 'desc' ? bVal - aVal : aVal - bVal;
+    });
+  }, [notIndexedPages, notIndexedSortKey, notIndexedSortDir]);
+
   if (loading) return <LoadingSpinner message="Fetching page index data…" />;
   if (error) return <div className="error-banner"><strong>Error:</strong> {error}</div>;
 
-  const rows = filter === 'indexed' ? indexedPages : notIndexedPages;
+  const rows = filter === 'indexed' ? sortedIndexed : sortedNotIndexed;
   const totalPages = Math.ceil(rows.length / PAGE_SIZE);
   const start = page * PAGE_SIZE;
   const pageRows = rows.slice(start, start + PAGE_SIZE);
@@ -133,21 +218,55 @@ export default function PageDataTab({
                     <th>Page</th>
                     {filter === 'indexed' ? (
                       <>
-                        <th className="text-right">Clicks</th>
-                        <th className="text-right">Impressions</th>
+                        <SortTh
+                          label="Clicks"
+                          icon="👆"
+                          sortKey="clicks"
+                          activeSortKey={indexedSortKey}
+                          sortDir={indexedSortDir}
+                          onSort={handleIndexedSort}
+                          tooltip="Number of times users clicked through to this page from Google Search."
+                        />
+                        <SortTh
+                          label="Impressions"
+                          icon="👁️"
+                          sortKey="impressions"
+                          activeSortKey={indexedSortKey}
+                          sortDir={indexedSortDir}
+                          onSort={handleIndexedSort}
+                          tooltip="How many times this page appeared in Google Search results."
+                        />
                         <th className="text-right">Avg. Position</th>
-                        <th className="text-right">
-                          Time on Page
-                          <InfoTooltip text="Average session duration for visitors from any source who visited this page, from Google Analytics." />
-                        </th>
+                        <SortTh
+                          label="Time on Page"
+                          icon="⏱️"
+                          sortKey="avgTimeOnPage"
+                          activeSortKey={indexedSortKey}
+                          sortDir={indexedSortDir}
+                          onSort={handleIndexedSort}
+                          tooltip="Average session duration for visitors who landed on this page, from Google Analytics."
+                        />
                       </>
                     ) : (
                       <>
-                        <th className="text-right">Page Views</th>
-                        <th className="text-right">
-                          Time on Page
-                          <InfoTooltip text="Average session duration for visitors who visited this page, from Google Analytics." />
-                        </th>
+                        <SortTh
+                          label="Page Views"
+                          icon="📄"
+                          sortKey="pageViews"
+                          activeSortKey={notIndexedSortKey}
+                          sortDir={notIndexedSortDir}
+                          onSort={handleNotIndexedSort}
+                          tooltip="Total number of times this page was viewed, from Google Analytics."
+                        />
+                        <SortTh
+                          label="Time on Page"
+                          icon="⏱️"
+                          sortKey="avgTimeOnPage"
+                          activeSortKey={notIndexedSortKey}
+                          sortDir={notIndexedSortDir}
+                          onSort={handleNotIndexedSort}
+                          tooltip="Average session duration for visitors who visited this page, from Google Analytics."
+                        />
                       </>
                     )}
                   </tr>
