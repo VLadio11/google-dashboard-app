@@ -75,6 +75,24 @@ export async function fetchTopPages(
   });
 }
 
+export async function fetchPageEngagement(
+  token: string,
+  propertyId: string,
+  startDate: string,
+  endDate: string
+) {
+  return post(`${DATA_API}/properties/${propertyId}:runReport`, token, {
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'pagePath' }],
+    metrics: [
+      { name: 'screenPageViews' },
+      { name: 'averageSessionDuration' },
+    ],
+    orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+    limit: 1000,
+  });
+}
+
 export async function fetchSessionsOverTime(
   token: string,
   propertyId: string,

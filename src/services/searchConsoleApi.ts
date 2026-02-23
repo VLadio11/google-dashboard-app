@@ -68,3 +68,20 @@ export async function fetchTopQueries(
     orderBy: [{ fieldName: 'clicks', sortOrder: 'DESCENDING' }],
   });
 }
+
+export async function fetchSCPages(
+  token: string,
+  siteUrl: string,
+  startDate: string,
+  endDate: string,
+  rowLimit = 1000
+) {
+  const encoded = encodeURIComponent(siteUrl);
+  return post(`${BASE}/sites/${encoded}/searchAnalytics/query`, token, {
+    startDate,
+    endDate,
+    dimensions: ['page'],
+    rowLimit,
+    orderBy: [{ fieldName: 'clicks', sortOrder: 'DESCENDING' }],
+  });
+}
