@@ -1,4 +1,5 @@
 const BASE = 'https://www.googleapis.com/webmasters/v3';
+const INSPECTION_API = 'https://searchconsole.googleapis.com/v1';
 
 async function get(url: string, token: string) {
   const res = await fetch(url, {
@@ -66,6 +67,13 @@ export async function fetchTopQueries(
     dimensions: ['query'],
     rowLimit,
     orderBy: [{ fieldName: 'clicks', sortOrder: 'DESCENDING' }],
+  });
+}
+
+export async function inspectUrl(token: string, inspectionUrl: string, siteUrl: string) {
+  return post(`${INSPECTION_API}/urlInspection/index:inspect`, token, {
+    inspectionUrl,
+    siteUrl,
   });
 }
 
