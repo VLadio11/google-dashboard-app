@@ -487,6 +487,12 @@ body {
   min-width: 0;
 }
 
+.metric-card__value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
 .metric-card__value {
   font-size: 26px;
   font-weight: 700;
@@ -495,10 +501,23 @@ body {
   letter-spacing: -0.02em;
 }
 
+.metric-card__sort-arrow {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.metric-card__label-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
 .metric-card__label {
   font-size: 12px;
   color: var(--text-secondary);
-  margin-top: 4px;
   font-weight: 500;
 }
 
@@ -506,6 +525,104 @@ body {
   font-size: 11px;
   color: var(--text-tertiary);
   margin-top: 2px;
+}
+
+/* ── Clickable metric cards ── */
+.metric-card--clickable {
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.metric-card--clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.metric-card--clickable:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.metric-card--blue.metric-card--active {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.25);
+}
+
+.metric-card--green.metric-card--active {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(52, 168, 83, 0.25);
+}
+
+.metric-card--purple.metric-card--active {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 2px rgba(147, 52, 230, 0.25);
+}
+
+.metric-card--orange.metric-card--active {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 2px rgba(250, 123, 23, 0.25);
+}
+
+/* ── Info tooltip ── */
+.info-tooltip-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-tertiary);
+  cursor: default;
+  vertical-align: middle;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.info-tooltip-trigger:hover {
+  color: var(--text-secondary);
+}
+
+.info-tooltip-popup {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #202124;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border-radius: 6px;
+  min-width: 180px;
+  max-width: 240px;
+  white-space: normal;
+  z-index: 300;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.info-tooltip-popup::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #202124;
+}
+
+/* ── Sort hint banner ── */
+.sort-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+/* ── Table sort arrow in column headers ── */
+.th-sort-arrow {
+  color: var(--blue);
+  font-weight: 700;
 }
 
 /* ── Chart card ── */
@@ -835,6 +952,9 @@ body {
   color: var(--text-secondary);
   font-weight: 500;
   margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .overview-unconfigured {

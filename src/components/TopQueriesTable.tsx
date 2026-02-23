@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { QueryData } from '../types';
 import { formatPct } from '../utils/dates';
 
 interface TopQueriesTableProps {
   queries: QueryData[];
+  sortKey?: 'clicks' | 'position' | null;
+  sortDir?: 'asc' | 'desc';
 }
 
 const PAGE_SIZE = 25;
@@ -39,19 +41,42 @@ function PositionDelta({ value }: { value: number | null | undefined }) {
   );
 }
 
-export default function TopQueriesTable({ queries }: TopQueriesTableProps) {
+export default function TopQueriesTable({ queries, sortKey, sortDir = 'asc' }: TopQueriesTableProps) {
   const [page, setPage] = useState(0);
 
-  if (queries.length === 0) {
+  // Reset to first page whenever sort changes
+  useEffect(() => {
+    setPage(0);
+  }, [sortKey, sortDir]);
+
+  const sortedQueries = useMemo(() => {
+    if (!sortKey) return queries;
+    return [...queries].sort((a, b) => {
+      const aVal = a[sortKey];
+      const bVal = b[sortKey];
+      return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+  }, [queries, sortKey, sortDir]);
+
+  if (sortedQueries.length === 0) {
     return <div className="empty-state">No query data available for this period.</div>;
   }
 
-  const totalPages = Math.ceil(queries.length / PAGE_SIZE);
+  const totalPages = Math.ceil(sortedQueries.length / PAGE_SIZE);
   const start = page * PAGE_SIZE;
-  const pageRows = queries.slice(start, start + PAGE_SIZE);
-  const maxClicks = queries[0]?.clicks ?? 1;
+  const pageRows = sortedQueries.slice(start, start + PAGE_SIZE);
+  const maxClicks = queries.reduce((max, q) => Math.max(max, q.clicks), 1);
 
   const hasPrev = queries.some((q) => q.clicksDelta !== undefined);
+
+  function SortIndicator({ col }: { col: 'clicks' | 'position' }) {
+    if (sortKey !== col) return null;
+    return (
+      <span className="th-sort-arrow" aria-hidden="true">
+        {sortDir === 'asc' ? ' ↑' : ' ↓'}
+      </span>
+    );
+  }
 
   return (
     <div className="table-card">
@@ -60,8 +85,8 @@ export default function TopQueriesTable({ queries }: TopQueriesTableProps) {
           Search Queries
         </h3>
         <span className="table-count">
-          {start + 1}–{Math.min(start + PAGE_SIZE, queries.length)} of{' '}
-          {queries.length.toLocaleString()}
+          {start + 1}–{Math.min(start + PAGE_SIZE, sortedQueries.length)} of{' '}
+          {sortedQueries.length.toLocaleString()}
         </span>
       </div>
 
@@ -71,10 +96,14 @@ export default function TopQueriesTable({ queries }: TopQueriesTableProps) {
             <tr>
               <th style={{ width: 32 }}>#</th>
               <th>Query</th>
-              <th className="text-right">Clicks</th>
+              <th className="text-right">
+                Clicks <SortIndicator col="clicks" />
+              </th>
               <th className="text-right">Impressions</th>
               <th className="text-right">CTR</th>
-              <th className="text-right">Avg. Position</th>
+              <th className="text-right">
+                Avg. Position <SortIndicator col="position" />
+              </th>
               {hasPrev && <th className="text-right">vs. Prev. Period</th>}
             </tr>
           </thead>
